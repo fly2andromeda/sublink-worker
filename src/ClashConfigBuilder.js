@@ -31,52 +31,30 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         } else {
             outbounds = getOutbounds(PREDEFINED_RULE_SETS.minimal);
         }
-
+        
+        // Get the list of proxy names
         const proxyList = this.config.proxies.map(proxy => proxy.name);
         
-        this.config['proxy-groups'].push({
-            name: '⚡ 延迟优先',
-            type: 'url-test',
-            proxies: DeepCopy(proxyList),
-            url: 'https://www.gstatic.com/generate_204',
-            interval: 300,
-            lazy: false
-        });
+        // Add DIRECT and REJECT options to the beginning of the proxy list
+        proxyList.unshift('DIRECT', 'REJECT');
 
-        proxyList.unshift('DIRECT', 'REJECT', '⚡ 延迟优先');
-        outbounds.unshift('🚀 手动选择');
-        
-        outbounds.forEach(outbound => {
-            if (outbound !== '🚀 手动选择') {
-                this.config['proxy-groups'].push({
-                    type: "select",
-                    name: outbound,
-                    proxies: ['🚀 手动选择', ...proxyList]
-                });
-            } else {
-                this.config['proxy-groups'].unshift({
-                    type: "select",
-                    name: outbound,
-                    proxies: proxyList
-                });
-            }
-        });
+        // Create single proxy group for main traffic with all nodes
+        this.config['proxy-groups'] = [{
+            type: "select",
+            name: "主要流量",
+            proxies: proxyList
+        }];
 
+        // Handle custom rules if they exist
         if (Array.isArray(this.customRules)) {
             this.customRules.forEach(rule => {
                 this.config['proxy-groups'].push({
                     type: "select",
                     name: rule.name,
-                    proxies: ['🚀 手动选择', ...proxyList]
+                    proxies: proxyList
                 });
             });
         }
-
-        this.config['proxy-groups'].push({
-            type: "select",
-            name: "主要流量",
-            proxies: ['🚀 手动选择', ...proxyList]
-        });
     }
     formatConfig() {
         const rules = generateRules(this.selectedRules, this.customRules, this.pin);
